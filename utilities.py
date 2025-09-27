@@ -24,8 +24,10 @@ class Logger:
             vals_str=""
 
             # TODO Part 5: Write the values from the list to the file
-            ...
-            
+            # Hint: use what's given in header
+            for val in values_list:
+                vals_str+=str(val)
+                vals_str+=", "
             vals_str+="\n"
             
             file.write(vals_str)
@@ -85,7 +87,10 @@ def euler_from_quaternion(quat):
     Convert quaternion (w in last place) to euler roll, pitch, yaw.
     quat = [x, y, z, w]
     """
-    ... # just unpack yaw
-    return yaw
+    # just unpack yaw because yaw is z, which is the only thing we are tracking
+    x, y, z, w = quat
+    siny_cosp = 2.0 * (w * z + x * y)
+    cosy_cosp = 1.0 - 2.0 * (y * y + z * z)
+    yaw = atan2(siny_cosp, cosy_cosp)
 
-
+    return yaw # in radians
