@@ -206,12 +206,12 @@ def plot_odom(filename):
     base = os.path.splitext(os.path.basename(filename))[0]
 
     # --- Figure 1: XY trajectory ---
-    plt.figure(figsize=(6.5, 6))
+    plt.figure(figsize=(4, 3.5))
     plt.plot(xs, ys, linewidth=1.3, label="trajectory")
     plt.axis("equal")
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
-    plt.title(f"Odometry XY Path — {motion} ({base})")
+    plt.title(f"Odometry XY Path — {motion}")
     plt.grid(True, alpha=0.4)
     plt.legend(loc="best", frameon=False)
     plt.tight_layout()
@@ -219,8 +219,7 @@ def plot_odom(filename):
 
     # Plot x, y, and theta over time in subplots for clarity
     # --- Figure 2: x, y, θ vs time ---
-    fig, ax = plt.subplots(3, 1, figsize=(8, 7), sharex=True)
-
+    fig, ax = plt.subplots(3, 1, figsize=(5, 4), sharex=True)
     ax[0].plot(time_s, xs, linewidth=1.2, label="x")
     ax[0].set_ylabel("x [m]")
     ax[0].grid(True, alpha=0.4)
@@ -237,7 +236,7 @@ def plot_odom(filename):
     ax[2].grid(True, alpha=0.4)
     ax[2].legend(loc="upper right", frameon=False)
 
-    fig.suptitle(f"Odometry Time Series — {motion} ({base})", y=0.98)
+    fig.suptitle(f"Odometry Time Series — {motion}", y=0.9)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(f"{base}_timeseries.png", dpi=150)
 
