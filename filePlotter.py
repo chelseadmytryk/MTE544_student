@@ -2,12 +2,17 @@
 # Note that you need to modify/adapt it to your own files
 # Feel free to make any modifications/additions here
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from utilities import FileReader
 from math import isfinite
 import math
 import os
 import numpy as np
+
+mpl.rcParams["savefig.bbox"] = "tight"       # trim on save by default
+mpl.rcParams["savefig.pad_inches"] = 0.01    # tiny padding on save
+mpl.rcParams["figure.constrained_layout.use"] = True  # pack subplots well
 
 NS_TO_S = 1e-9
 
@@ -113,77 +118,48 @@ def plot_imu(filename):
     if not values or not all(h in headers for h in ("acc_x","acc_y","angular_z","stamp")):
         print(f"[warn] '{filename}' missing required IMU columns.")
         return
-    ax_i = headers.index("acc_x")
-    ay_i = headers.index("acc_y")
-    wz_i = headers.index("angular_z")
-    ts_i = headers.index("stamp")
 
-    # time in seconds, zeroed to first sample
+    ax_i = headers.index("acc_x"); ay_i = headers.index("acc_y")
+    wz_i = headers.index("angular_z"); ts_i = headers.index("stamp")
+
     t0 = float(values[0][ts_i])
-    t = np.array([(float(r[ts_i]) - t0) * NS_TO_S for r in values])
-    
+    t  = np.array([(float(r[ts_i]) - t0) * NS_TO_S for r in values])
     ax = np.array([float(r[ax_i]) for r in values])
     ay = np.array([float(r[ay_i]) for r in values])
     wz = np.array([float(r[wz_i]) for r in values])
-    amag = np.sqrt(ax**2 + ay**2)
 
     motion = _motion_from_filename(filename)
-    base = os.path.splitext(os.path.basename(filename))[0]
+    base   = os.path.splitext(os.path.basename(filename))[0]
 
-    # --- Figure 1: raw signals vs time ---
-    fig, axs = plt.subplots(3, 1, figsize=(8, 7), sharex=True)
-    axs[0].plot(t, ax, label="acc_x")
-    axs[0].set_ylabel("acc_x [m/s²]")
-    axs[0].grid(True, alpha=0.4)
-    axs[0].legend(loc="best", frameon=False)
+    # --- Figure 1: RAW with title at top ---
+    fig, axs = plt.subplots(3, 1, figsize=(6, 4), sharex=True, constrained_layout=True)
+    axs[0].plot(t, ax, label="acc_x"); axs[0].set_ylabel("acc_x [m/s²]", labelpad=1); axs[0].grid(True, alpha=0.4); axs[0].legend(loc="best", frameon=False)
+    axs[1].plot(t, ay, label="acc_y"); axs[1].set_ylabel("acc_y [m/s²]", labelpad=1); axs[1].grid(True, alpha=0.4); axs[1].legend(loc="best", frameon=False)
+    axs[2].plot(t, wz, label="angular_z"); axs[2].set_xlabel("time [s]", labelpad=1); axs[2].set_ylabel("ω_z [rad/s]", labelpad=1); axs[2].grid(True, alpha=0.4); axs[2].legend(loc="best", frameon=False)
+    for a in axs: a.margins(x=0); a.tick_params(length=3, pad=2)
 
-    axs[1].plot(t, ay, label="acc_y")
-    axs[1].set_ylabel("acc_y [m/s²]")
-    axs[1].grid(True, alpha=0.4)
-    axs[1].legend(loc="best", frameon=False)
+    fig.suptitle(f"IMU Time Series — {motion}", fontsize=11)
+    # give the suptitle a bit of headroom above the axes
+    fig.subplots_adjust(top=0.93)
 
-    axs[2].plot(t, wz, label="angular_z")
-    axs[2].set_xlabel("time [s]")
-    axs[2].set_ylabel("ω_z [rad/s]")
-    axs[2].grid(True, alpha=0.4)
-    axs[2].legend(loc="best", frameon=False)
+    fig.savefig(f"{base}_imu_timeseries.png", bbox_inches="tight", pad_inches=0.01, dpi=200)
 
-    fig.suptitle(f"IMU Time Series — {motion} ({base})", y=0.98)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(f"{base}_imu_timeseries.png", dpi=150)
+    # --- Figure 2: SMOOTHED with title at top ---
+    ax_s = _moving_avg(ax, win=21); ay_s = _moving_avg(ay, win=21); wz_s = _moving_avg(wz, win=21)
 
-    # --- Figure 2: smoothed ---
-    ax_s = _moving_avg(ax, win=21)
-    ay_s = _moving_avg(ay, win=21)
-    wz_s = _moving_avg(wz, win=21)
-
-    fig2, axs2 = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+    fig2, axs2 = plt.subplots(2, 1, figsize=(6, 4), sharex=True, constrained_layout=True)
     axs2[0].plot(t, ax_s, label="acc_x (smoothed)")
     axs2[0].plot(t, ay_s, label="acc_y (smoothed)")
-    axs2[0].set_ylabel("acc [m/s²]")
-    axs2[0].grid(True, alpha=0.4)
-    axs2[0].legend(loc="best", frameon=False)
-
+    axs2[0].set_ylabel("acc [m/s²]", labelpad=1); axs2[0].grid(True, alpha=0.4); axs2[0].legend(loc="best", frameon=False)
     axs2[1].plot(t, wz_s, label="angular_z (smoothed)")
-    axs2[1].set_xlabel("time [s]")
-    axs2[1].set_ylabel("ω_z [rad/s]")
-    axs2[1].grid(True, alpha=0.4)
-    axs2[1].legend(loc="best", frameon=False)
+    axs2[1].set_xlabel("time [s]", labelpad=1); axs2[1].set_ylabel("ω_z [rad/s]", labelpad=1); axs2[1].grid(True, alpha=0.4); axs2[1].legend(loc="best", frameon=False)
+    for a in axs2: a.margins(x=0); a.tick_params(length=3, pad=2)
 
-    fig2.suptitle(f"IMU Smoothed Signals — {motion} ({base})", y=0.98)
-    fig2.tight_layout(rect=[0, 0, 1, 0.96])
-    fig2.savefig(f"{base}_imu_smoothed.png", dpi=150)
+    fig2.suptitle(f"IMU Smoothed Signals — {motion}", fontsize=11)
+    fig2.subplots_adjust(top=0.93)
 
-    # plt.figure()
-    # for i in range(0, len(headers) - 1):  # skip timestamp
-    #     plt.plot(time_list, [v[i] for v in values], label=headers[i])
+    fig2.savefig(f"{base}_imu_smoothed.png", bbox_inches="tight", pad_inches=0.01, dpi=200)
 
-    # # Plot all data on the same graph for comparison
-    # plt.title("IMU Sensor Data - " + motion)
-    # plt.xlabel("Time (s)")
-    # plt.ylabel("IMU Values")
-    # plt.legend()
-    # plt.grid()
     plt.show()
 
 def plot_odom(filename):
