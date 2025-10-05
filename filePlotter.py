@@ -191,30 +191,26 @@ def plot_odom(filename):
     plt.grid(True, alpha=0.4)
     plt.legend(loc="best", frameon=False)
     plt.tight_layout()
-    plt.savefig(f"{base}_xy.png", dpi=150)
+    plt.savefig(f"{base}_xy.png", bbox_inches="tight", pad_inches=0.01, dpi=200)
 
     # Plot x, y, and theta over time in subplots for clarity
     # --- Figure 2: x, y, θ vs time ---
     fig, ax = plt.subplots(3, 1, figsize=(5, 4), sharex=True)
     ax[0].plot(time_s, xs, linewidth=1.2, label="x")
-    ax[0].set_ylabel("x [m]")
-    ax[0].grid(True, alpha=0.4)
-    ax[0].legend(loc="upper right", frameon=False)
+    ax[0].set_ylabel("x [m]", labelpad=1); ax[0].grid(True, alpha=0.4); ax[0].legend(loc="upper right", frameon=False)
 
     ax[1].plot(time_s, ys, linewidth=1.2, label="y")
-    ax[1].set_ylabel("y [m]")
-    ax[1].grid(True, alpha=0.4)
-    ax[1].legend(loc="upper right", frameon=False)
+    ax[1].set_ylabel("y [m]", labelpad=1); ax[1].grid(True, alpha=0.4); ax[1].legend(loc="upper right", frameon=False)
 
     ax[2].plot(time_s, th, linewidth=1.2, label=r"$\theta$")
-    ax[2].set_xlabel("time [s]")
-    ax[2].set_ylabel(r"$\theta$ [rad]")
+    ax[2].set_xlabel("time [s]", labelpad=1)
+    ax[2].set_ylabel(r"$\theta$ [rad]", labelpad=1)
     ax[2].grid(True, alpha=0.4)
     ax[2].legend(loc="upper right", frameon=False)
 
     fig.suptitle(f"Odometry Time Series — {motion}", y=0.9)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(f"{base}_timeseries.png", dpi=150)
+    fig.savefig(f"{base}_timeseries.png", bbox_inches="tight", pad_inches=0.02, dpi=200)
 
     # If you also want to show immediately:
     plt.show()
