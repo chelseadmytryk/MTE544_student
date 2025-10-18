@@ -1,3 +1,12 @@
+/Images
+.gitignore
+__pycache__
+/*.png
+/*.csv
+/data/*.csv
+/data/*.png
+/data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -206,3 +215,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .DS_Store
+imu_content_circle_imu_smoothed.png
+imu_content_circle.csv
+
+

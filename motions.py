@@ -8,6 +8,8 @@ from sensor_msgs.msg import Imu
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from rclpy.time import Time
+import json
+import math
 
 
 CIRCLE=0; SPIRAL=1; ACC_LINE=2
@@ -88,16 +90,17 @@ class motion_executioner(Node):
         x = odom_msg.pose.pose.position.x
         y = odom_msg.pose.pose.position.y
         q = odom_msg.pose.pose.orientation
-        roll, pitch, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
+        yaw = euler_from_quaternion(q.x, q.y, q.z, q.w)
         self.odom_logger.log_values([x, y, yaw, timestamp])
         self.odom_initialized = True  
                 
     def laser_callback(self, laser_msg: LaserScan):
         timestamp = Time.from_msg(laser_msg.header.stamp).nanoseconds
         # Convert to list so it writes as "[...]" instead of "array('f', ...)"
-        self.laser_logger.log_values([list(laser_msg.ranges), 
+        ranges_json = json.dumps([r if math.isfinite(r) else None for r in laser_msg.ranges])
+        self.laser_logger.log_values(list[laser_msg.ranges], 
                                       laser_msg.angle_increment, 
-                                      timestamp])
+                                      timestamp)
         self.laser_initialized = True
                 
     def timer_callback(self):

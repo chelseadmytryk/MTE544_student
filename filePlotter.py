@@ -64,8 +64,54 @@ def plot_laser(filename):
         return
 
     row = values[0]  # one scan only (as per lab)
+    print(row)
     print(f"Plotting first scan from '{filename}' with headers: {headers}")
-    print(f"Row data: {row[:10]} ...")  # short preview
+
+    ranges = row[0]    # assuming "ranges" is stored as a string list
+    if not isinstance(ranges, list):
+        print("[warn] ranges not parsed as list.")
+        return
+
+    # angle increment (infer full circle if absent/invalid)
+    if "angle_increment" in headers:
+        try:
+            ang = float(row[headers.index("angle_increment")])
+        except Exception:
+            ang = 2*math.pi / max(1, len(ranges))
+    else:
+        ang = 2*math.pi / max(1, len(ranges))
+  
+    xs, ys = [], []
+    for i, r in enumerate(ranges):
+        if r is None or not isinstance(r, (int, float)) or not math.isfinite(r):
+            continue  # skip inf/nan/null per lab
+        a = i * ang  # first beam along +x
+        xs.append(r * math.cos(a))
+        ys.append(r * math.sin(a))
+        
+    if not xs:
+        print(f"[warn] no finite ranges in '{filename}'.")
+        return
+    
+    plt.figure()
+    plt.scatter(xs, ys, s=5)
+    plt.axis("equal")
+    plt.title(f"Lidar scan from {filename}")
+    plt.xlabel("x [m]")
+    plt.ylabel("y [m]")
+    plt.show()
+
+
+
+
+def plot_laser_1(filename):
+    headers, values = FileReader(filename).read_file()
+    if not values:
+        print(f"[warn] '{filename}' has no data.")
+        return
+
+    row = values[0]  # one scan only (as per lab)
+    print(f"Plotting first scan from '{filename}' with headers: {headers}")
 
     # 1) ranges (stitched across columns)
     if "ranges" not in headers:
