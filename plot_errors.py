@@ -7,18 +7,13 @@ from utilities import FileReader
 def plot_errors(filename):
     
     headers, values=FileReader(filename).read_file()
-    
     time_list=[]
-    
     first_stamp=values[0][-1]
     
     for val in values:
         time_list.append(val[-1] - first_stamp)
 
-    
-    
     fig, axes = plt.subplots(1,2, figsize=(14,6))
-
 
     axes[0].plot([lin[0] for lin in values], [lin[1] for lin in values])
     axes[0].set_title("state space")

@@ -20,6 +20,8 @@ class PID_ctrl:
         self.kp=kp    # proportional gain
         self.kv=kv    # derivative gain
         self.ki=ki    # integral gain
+
+        print(f"Initialized {'P' if type_==P else 'PD' if type_==PD else 'PI' if type_==PI else 'PID'} controller with kp={kp}, kv={kv}, ki={ki}")
         
         self.logger=Logger(filename_)
         # Remeber that you are writing to the file named filename_ or errors.csv the following:
@@ -42,7 +44,7 @@ class PID_ctrl:
         
         self.history.append(stamped_error)        
         
-        if (len(self.history) > self.history_length):
+        if (len(self.history) > self.history_length):  #try changing this to see its effect
             self.history.pop(0)
         
         # If insufficient data points, use only the proportional gain
@@ -64,10 +66,10 @@ class PID_ctrl:
 
             # use constant dt if the messages arrived inconsistent
             # for example dt=0.1 overwriting the calculation          
-            
-            # TODO Part 5: calculate the error dot 
-            # error_dot+= ... 
-            
+
+            # Calculate the error dot
+            error_dot += (self.history[i][0] - self.history[i-1][0]) / dt
+
         error_dot/=len(self.history)
         dt_avg/=len(self.history)
         
@@ -79,23 +81,20 @@ class PID_ctrl:
             pass
         
         error_int=sum_*dt_avg
-        
-        # TODO Part 4: Log your errors
-        self.logger.log_values( ... )
-        
-        # TODO Part 4: Implement the control law of P-controller
+
+        # Log your errors
+        self.logger.log_values([latest_error, error_dot, error_int, Time.from_msg(stamp).nanoseconds])
+
+        # Implement the control law of P-controller
         if self.type == P:
-            return ... # complete
-        
-        # TODO Part 5: Implement the control law corresponding to each type of controller
+            return self.kp * latest_error
+
+        # Implement the control law corresponding to each type of controller
         elif self.type == PD:
-            pass
-            # return ... # complete
+            return self.kp * latest_error + self.kv * error_dot
         
         elif self.type == PI:
-            pass
-            # return ... # complete
+            return self.kp * latest_error + self.ki * error_int
         
         elif self.type == PID:
-            pass
-            # return ... # complete
+            return self.kp * latest_error + self.ki * error_int + self.kv * error_dot
