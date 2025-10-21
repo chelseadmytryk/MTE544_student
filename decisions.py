@@ -2,6 +2,8 @@
 
 
 import sys
+import os
+import time
 
 from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error
 from pid import PID_ctrl
@@ -22,11 +24,22 @@ from controller import controller, trajectoryController, USE_SIMULATION
 # import ...
 # Notes from tutorial: Use ranges and angle increments. Use these to convert into Cartesian coordinates. We can say that our first laser scan is at x=0 
 
+KLP = 0.25
+KLV = 0.05
+KLI = 0.01
+KAP = 1.0
+KAV = 0.05
+KAI = 0.01
 class decision_maker(Node):
     
-    def __init__(self, publisher_msg, publishing_topic, qos_publisher, goalPoint, rate=10, motion_type=POINT_PLANNER):
+    def __init__(self, publisher_msg, publishing_topic, qos_publisher, goalPoint, rate=10, motion_type=POINT_PLANNER, motion_name="point"):
 
         super().__init__("decision_maker")
+
+        # Create timestamped folder for logging
+        timestamp = str(int(time.time()))
+        self.log_folder = f"{motion_name.lower()}_{timestamp}"
+        os.makedirs(self.log_folder, exist_ok=True)
 
         # Create a publisher for the topic responsible for robot's motion
         # Important: use the function parameters (publisher_msg, publishing_topic, qos_publisher) to create the publisher. Dont make a new one
@@ -39,12 +52,12 @@ class decision_maker(Node):
         # for P, PD, PI controller: lp=10, klv=0.5, kli=0.2, kap=1.4, kav=0.2, kai=0.2
         # Question: How are these supposed to affect the plots? Our linear plots look the same no matter what basically. 
         if motion_type == POINT_PLANNER:
-            self.controller=controller(klp=10, klv=0.5, kli=0.2, kap=1.4, kav=0.2, kai=0.5)
+            self.controller=controller(klp=KLP, klv=KLV, kli=KLI, kap=KAP, kav=KAV, kai=KAI, log_folder=self.log_folder)
             self.planner=planner(POINT_PLANNER)    
     
     
         elif motion_type==TRAJECTORY_PLANNER:
-            self.controller=trajectoryController(klp=0.2, klv=0.5, kli=0.2, kap=0.8, kav=0.6, kai=0.2)
+            self.controller=trajectoryController(klp=KLP, klv=KLV, kli=KLI, kap=KAP, kav=KAV, kai=KAI, log_folder=self.log_folder)
             self.planner=planner(TRAJECTORY_PLANNER)
 
         else:
@@ -52,7 +65,7 @@ class decision_maker(Node):
 
 
         # Instantiate the localization, use rawSensor for now  
-        self.localizer=localization(rawSensor)          #this will start the localization node
+        self.localizer=localization(rawSensor, log_folder=self.log_folder)          #this will start the localization node
 
         # Instantiate the planner
         # NOTE: goalPoint is used only for the pointPlanner
@@ -123,9 +136,9 @@ def main(args=None):
 
     # Instantiate the decision_maker with the proper parameters for moving the robot
     if args.motion.lower() == "point":
-        DM=decision_maker(publisher_msg=Twist, publishing_topic='/cmd_vel', qos_publisher=odom_qos, goalPoint=[-1.0, -1.0], rate=10, motion_type=POINT_PLANNER)
+        DM=decision_maker(publisher_msg=Twist, publishing_topic='/cmd_vel', qos_publisher=odom_qos, goalPoint=[-1.5, -1.5], rate=10, motion_type=POINT_PLANNER, motion_name=args.motion)
     elif args.motion.lower() == "trajectory":
-        DM=decision_maker(publisher_msg=Twist, publishing_topic='/cmd_vel', qos_publisher=odom_qos, goalPoint=[1.0, 0.0], rate=10, motion_type=TRAJECTORY_PLANNER)
+        DM=decision_maker(publisher_msg=Twist, publishing_topic='/cmd_vel', qos_publisher=odom_qos, goalPoint=[1.0, 0.0], rate=10, motion_type=TRAJECTORY_PLANNER, motion_name=args.motion)
     else:
         print("invalid motion type", file=sys.stderr)
 

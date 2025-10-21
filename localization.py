@@ -1,4 +1,5 @@
 import sys
+import os
 
 from utilities import Logger, euler_from_quaternion
 from rclpy.time import Time
@@ -14,7 +15,7 @@ from controller import USE_SIMULATION
 rawSensor = 0
 class localization(Node):
     
-    def __init__(self, localizationType=rawSensor):
+    def __init__(self, localizationType=rawSensor, log_folder="."):
 
         super().__init__("localizer")
         
@@ -33,7 +34,7 @@ class localization(Node):
                 durability=QoSDurabilityPolicy.VOLATILE
             )
         
-        self.loc_logger=Logger("robot_pose.csv", ["x", "y", "theta", "stamp"])
+        self.loc_logger=Logger(os.path.join(log_folder, "robot_pose.csv"), ["x", "y", "theta", "stamp"])
         self.pose=None
         
         if localizationType == rawSensor:

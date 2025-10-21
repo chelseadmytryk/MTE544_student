@@ -14,11 +14,11 @@ class controller:
     
     
     # Default gains of the controller for linear and angular motions
-    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2):
+    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2, log_folder="."):
         
         # TODO Part 5 and 6: Modify the below lines to test your PD, PI, and PID controller
-        self.PID_linear=PID_ctrl(PID, klp, klv, kli, filename_="linear.csv")
-        self.PID_angular=PID_ctrl(PID, kap, kav, kai, filename_="angular.csv")
+        self.PID_linear=PID_ctrl(PID, klp, klv, kli, filename_="linear.csv", log_folder=log_folder)
+        self.PID_angular=PID_ctrl(PID, kap, kav, kai, filename_="angular.csv", log_folder=log_folder)
 
     def vel_request(self, pose, goal, status):
         
@@ -33,21 +33,21 @@ class controller:
         # Get saturation limits from the references in lab manual (or from links in the tutorial 5?).
         if USE_SIMULATION:
             # Turtlebot 3 Burger limits
-            linear_vel = 0.22 if linear_vel > 0.22 else linear_vel
-            angular_vel= 2.84 if angular_vel > 2.84 else angular_vel
+            linear_vel = min(max(linear_vel, -0.22), 0.22)
+            angular_vel = min(max(angular_vel, -2.84), 2.84)
         else:
             # Turtlebot 4 limits
-            linear_vel = 0.28 if linear_vel > 0.31 else linear_vel
-            angular_vel= 1.67 if angular_vel > 1.9 else angular_vel
+            linear_vel = min(max(linear_vel, -0.28), 0.28)
+            angular_vel = min(max(angular_vel, -1.67), 1.67)
 
         return linear_vel, angular_vel
     
 
 class trajectoryController(controller):
 
-    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2):
+    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2, log_folder="."):
         
-        super().__init__(klp, klv, kli, kap, kav, kai)
+        super().__init__(klp, klv, kli, kap, kav, kai, log_folder)
     
     def vel_request(self, pose, listGoals, status):
         
@@ -65,12 +65,12 @@ class trajectoryController(controller):
         # Add saturation limits for the robot linear and angular velocity (hint: you can use np.clip function)
         if USE_SIMULATION:
             # Turtlebot 3 Burger limits
-            linear_vel = 0.22 if linear_vel > 0.22 else linear_vel
-            angular_vel= 2.84 if angular_vel > 2.84 else angular_vel
+            linear_vel = min(max(linear_vel, -0.22), 0.22)
+            angular_vel = min(max(angular_vel, -2.84), 2.84)
         else:
             # Turtlebot 4 limits
-            linear_vel = 0.28 if linear_vel > 0.31 else linear_vel
-            angular_vel= 1.67 if angular_vel > 1.9 else angular_vel
+            linear_vel = min(max(linear_vel, -0.28), 0.28)
+            angular_vel = min(max(angular_vel, -1.67), 1.67)
         
         return linear_vel, angular_vel
 
