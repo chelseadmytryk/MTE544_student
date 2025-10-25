@@ -58,8 +58,8 @@ class PID_ctrl:
         
         for i in range(1, len(self.history)):
             
-            t0=Time.from_msg(self.history[-2][1])
-            t1=Time.from_msg(self.history[-1][1])
+            t0=Time.from_msg(self.history[i-1][1])
+            t1=Time.from_msg(self.history[i][1])
             
             dt=(t1.nanoseconds - t0.nanoseconds) / 1e9
             

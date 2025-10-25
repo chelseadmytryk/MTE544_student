@@ -1,189 +1,139 @@
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import numpy as np
 import os
 from utilities import FileReader
+import argparse
 
+# ---------- helpers ----------
+def _read_error_csv(path):
+    headers, vals = FileReader(path).read_file()
+    t0 = vals[0][-1]
+    t = [(v[-1] - t0) / 1e9 for v in vals]     # seconds from 0
+    e = [v[0] for v in vals]
+    edot = [v[1] for v in vals]
+    return np.array(t), np.array(e), np.array(edot)
 
-def plot_controller_errors(csv_path, controller_type):
-    """
-    Plot controller error data (angular or linear)
-    """
-    headers, values = FileReader(csv_path).read_file()
-    
-    # Calculate time values (convert from nanoseconds and normalize to start at 0)
-    first_stamp = values[0][-1]
-    time_list = [(val[-1] - first_stamp) / 1e9 for val in values]  # Convert to seconds
-    
-    # Extract error data
-    error = [val[0] for val in values]
-    error_dot = [val[1] for val in values]
-    error_int = [val[2] for val in values]
-    
-    # Create the plot with 3 subplots
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-    fig.suptitle(f'{controller_type.title()} Controller Error Results', fontsize=16, fontweight='bold')
-    
-    # Subplot 1: Error vs Time
-    axes[0].plot(time_list, error, 'b-', linewidth=2, label='Error')
-    axes[0].set_xlabel('Time [s]')
-    axes[0].set_ylabel('Error')
-    axes[0].set_title('Error vs Time')
-    axes[0].grid(True, alpha=0.3)
-    axes[0].legend()
-    
-    # Subplot 2: Derivative Error vs Time
-    axes[1].plot(time_list, error_dot, 'r-', linewidth=2, label='Derivative Error')
-    axes[1].set_xlabel('Time [s]')
-    axes[1].set_ylabel('Derivative Error')
-    axes[1].set_title('Derivative Error vs Time')
-    axes[1].grid(True, alpha=0.3)
-    axes[1].legend()
-    
-    # Subplot 3: Error vs Derivative Error (Phase Plot)
-    axes[2].plot(error, error_dot, 'g-', linewidth=2, label='Phase Plot')
-    axes[2].set_xlabel('Error')
-    axes[2].set_ylabel('Derivative Error')
-    axes[2].set_title('Error vs Derivative Error')
-    axes[2].grid(True, alpha=0.3)
-    axes[2].legend()
-    
+def _read_pose_csv(path):
+    headers, vals = FileReader(path).read_file()
+    t0 = vals[0][-1]
+    t = [(v[-1] - t0) / 1e9 for v in vals]     # seconds from 0
+    x = [v[0] for v in vals]
+    y = [v[1] for v in vals]
+    th = [v[2] for v in vals]
+    return np.array(t), np.array(x), np.array(y), np.array(th)
+
+def _safe_markevery(n):
+    return max(1, n // 25)
+
+# ---------- main plotting ----------
+def make_four_plots(folder):
+    lin_path = os.path.join(folder, "linear.csv")
+    ang_path = os.path.join(folder, "angular.csv")
+    pose_path = os.path.join(folder, "robot_pose.csv")
+
+    if not (os.path.exists(lin_path) and os.path.exists(ang_path) and os.path.exists(pose_path)):
+        missing = [p for p in [lin_path, ang_path, pose_path] if not os.path.exists(p)]
+        raise FileNotFoundError(f"Missing required CSV(s): {missing}")
+
+    # read
+    tL, eL, edotL = _read_error_csv(lin_path)
+    tA, eA, edotA = _read_error_csv(ang_path)
+    tP, x, y, th = _read_pose_csv(pose_path)
+
+    # ---------- Figure 1: two subplots ----------
+    # Subplot A: LINEAR { e–t , ė–t } overlaid
+    fig1, axes = plt.subplots(1, 2, figsize=(8, 4), sharex=False)
+    fig1.suptitle("Errors vs Time", fontsize=12, fontweight='bold')
+
+    meL = _safe_markevery(len(tL))
+    meA = _safe_markevery(len(tA))
+
+    # A) Linear channel
+    axes[0].plot(tL, eL,    linewidth=1, label="e(t)")
+    axes[0].plot(tL, edotL, linewidth=1, color="red", label="ė(t)")
+    axes[0].set_title("Linear Controller: {e(t) , ė(t)}")
+    axes[0].set_xlabel("Time [s]"); axes[0].set_ylabel("Value")
+    axes[0].grid(True, alpha=0.3); axes[0].legend()
+
+    # B) Angular channel
+    axes[1].plot(tA, eA,    linewidth=1, label="e(t)")
+    axes[1].plot(tA, edotA, linewidth=1, color="red", label="ė(t)")
+    axes[1].set_title("Angular Controller: {e(t) , ė(t)}")
+    axes[1].set_xlabel("Time [s]"); axes[1].set_ylabel("Value")
+    axes[1].grid(True, alpha=0.3); axes[1].legend()
+
+    out1 = os.path.join(folder, "fig1_errors_linear_and_angular_pairs.png")
+    fig1.tight_layout()
+    fig1.savefig(out1, dpi=300, bbox_inches='tight')
     plt.tight_layout()
-    
-    # Save the plot
-    output_path = os.path.join(os.path.dirname(csv_path), f'{controller_type}.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    print(f"Saved {controller_type} controller plot to: {output_path}")
+    plt.close(fig1)
+    print(f"Saved: {out1}")
 
-
-def plot_robot_pose(csv_path):
-    """
-    Plot robot pose data with two separate figures
-    """
-    headers, values = FileReader(csv_path).read_file()
-    
-    # Calculate time values (convert from nanoseconds and normalize to start at 0)
-    first_stamp = values[0][-1]
-    time_list = [(val[-1] - first_stamp) / 1e9 for val in values]  # Convert to seconds
-    
-    # Extract pose data
-    x_pos = [val[0] for val in values]
-    y_pos = [val[1] for val in values]
-    theta = [val[2] for val in values]
-    
-    # First figure: Robot Pose Data vs Time
-    fig1, axes = plt.subplots(3, 1, figsize=(12, 10))
-    fig1.suptitle('Robot Pose Data', fontsize=16, fontweight='bold')
-    
-    # X position vs time
-    axes[0].plot(time_list, x_pos, 'b-', linewidth=2, label='X Position')
-    axes[0].set_xlabel('Time [s]')
-    axes[0].set_ylabel('X Position [m]')
-    axes[0].set_title('X Position vs Time')
-    axes[0].grid(True, alpha=0.3)
-    axes[0].legend()
-    
-    # Y position vs time
-    axes[1].plot(time_list, y_pos, 'r-', linewidth=2, label='Y Position')
-    axes[1].set_xlabel('Time [s]')
-    axes[1].set_ylabel('Y Position [m]')
-    axes[1].set_title('Y Position vs Time')
-    axes[1].grid(True, alpha=0.3)
-    axes[1].legend()
-    
-    # Theta vs time
-    axes[2].plot(time_list, theta, 'g-', linewidth=2, label='Theta Orientation')
-    axes[2].set_xlabel('Time [s]')
-    axes[2].set_ylabel('Theta [rad]')
-    axes[2].set_title('Theta Orientation vs Time')
-    axes[2].grid(True, alpha=0.3)
-    axes[2].legend()
-    
+    # ---------- Figure 2: phase {e–ė} linear & angular overlaid ----------
+    plt.figure(figsize=(5, 4))
+    plt.plot(eL, edotL, linewidth=1, label="Linear: e vs ė")
+    plt.plot(eA, edotA, linewidth=1, color="red", label="Angular: e vs ė")
+    plt.title("Phase Plot {e – ė}", fontsize=12, fontweight='bold')
+    plt.xlabel("Error e"); plt.ylabel("Error derivative ė")
+    plt.grid(True, alpha=0.3); plt.legend()
+    out2 = os.path.join(folder, "fig2_phase_e_vs_edot_overlaid.png")
     plt.tight_layout()
-    
-    # Save the first plot
-    output_path1 = os.path.join(os.path.dirname(csv_path), 'robot_pose.png')
-    plt.savefig(output_path1, dpi=300, bbox_inches='tight')
+    plt.savefig(out2, dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"Saved robot pose data plot to: {output_path1}")
-    
-    # Second figure: Robot Path Mapping with time gradient
-    fig2, ax = plt.subplots(figsize=(10, 8))
-    fig2.suptitle('Robot Path Mapping', fontsize=16, fontweight='bold')
-    
-    # Create a time-based color gradient
-    colors = plt.cm.viridis(np.linspace(0, 1, len(x_pos)))
-    
-    # Plot the path with gradient coloring
-    for i in range(len(x_pos) - 1):
-        ax.plot([x_pos[i], x_pos[i+1]], [y_pos[i], y_pos[i+1]], 
-                color=colors[i], linewidth=2)
-    
-    # Add start and end markers
-    ax.plot(x_pos[0], y_pos[0], 'go', markersize=10, label='Start', markeredgecolor='black')
-    ax.plot(x_pos[-1], y_pos[-1], 'ro', markersize=10, label='End', markeredgecolor='black')
-    
-    # Create colorbar to show time progression
-    sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=time_list[0], vmax=time_list[-1]))
+    print(f"Saved: {out2}")
+
+    # ---------- Figure 3: {x–t, y–t, θ–t} overlaid ----------
+    plt.figure(figsize=(7, 4))
+    meP = _safe_markevery(len(tP))
+    plt.plot(tP, x,  linewidth=1, label="x(t)")
+    plt.plot(tP, y,  linewidth=1, color="red", label="y(t)")
+    plt.plot(tP, th, linewidth=1, color="green", label="θ(t)")
+    plt.title("Robot Pose vs Time {x–t , y–t , θ–t}", fontsize=12, fontweight='bold')
+    plt.xlabel("Time [s]"); plt.ylabel("Value [m or rad]")
+    plt.grid(True, alpha=0.3); plt.legend()
+    out3 = os.path.join(folder, "fig3_pose_x_y_theta_overlaid.png")
+    plt.tight_layout()
+    plt.savefig(out3, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {out3}")
+
+
+    # ---------- Figure 4: {x–y} with time colorbar ----------
+    fig, ax = plt.subplots(figsize=(6, 4))
+    plt.title("Robot Trajectory (x–y)", fontsize=12, fontweight='bold')
+    colors = plt.cm.viridis(np.linspace(0, 1, len(x)))
+    for i in range(len(x) - 1):
+        ax.plot([x[i], x[i+1]], [y[i], y[i+1]], color=colors[i], linewidth=2)
+
+    # start/end markers
+    ax.plot(x[0], y[0], 'go', markersize=9, label='Start', markeredgecolor='black')
+    ax.plot(x[-1], y[-1], 'ro', markersize=9, label='End', markeredgecolor='black')
+
+    # colorbar for time
+    sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=tP[0], vmax=tP[-1]))
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=ax)
-    cbar.set_label('Time [s]', fontsize=12)
-    
-    ax.set_xlabel('X Position [m]')
-    ax.set_ylabel('Y Position [m]')
-    ax.set_title('Robot Trajectory (Color = Time Progression)')
+    cbar.set_label('Time [s]')
+
+    ax.set_xlabel('x [m]')
+    ax.set_ylabel('y [m]')
     ax.grid(True, alpha=0.3)
     ax.legend()
     ax.axis('equal')
-    
+    ax.autoscale()                 # autoscale to colored segments
+
+    out4 = os.path.join(folder, "fig4_trajectory_xy.png")
+    fig.tight_layout()
     plt.tight_layout()
-    
-    # Save the second plot
-    output_path2 = os.path.join(os.path.dirname(csv_path), 'robot_path_mapping.png')
-    plt.savefig(output_path2, dpi=300, bbox_inches='tight')
-    plt.close()
-    print(f"Saved robot path mapping plot to: {output_path2}")
+    fig.savefig(out4, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    print(f"Saved: {out4}")
 
 
-def process_folder(folder_path):
-    """
-    Process all CSV files in a folder and generate plots
-    """
-    if not os.path.isdir(folder_path):
-        print(f"Error: {folder_path} is not a valid directory")
-        return
-    
-    # Expected CSV files
-    csv_files = {
-        'linear.csv': 'linear',
-        'angular.csv': 'angular',
-        'robot_pose.csv': 'robot_pose'
-    }
-    
-    for filename, plot_type in csv_files.items():
-        csv_path = os.path.join(folder_path, filename)
-        
-        if os.path.exists(csv_path):
-            print(f"Processing {filename}...")
-            
-            if plot_type in ['linear', 'angular']:
-                plot_controller_errors(csv_path, plot_type)
-            elif plot_type == 'robot_pose':
-                plot_robot_pose(csv_path)
-        else:
-            print(f"Warning: {filename} not found in {folder_path}")
-
-
-import argparse
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Generate plots from CSV data in a folder')
-    parser.add_argument('--folder', required=True, help='Folder containing CSV files to process')
-    
+    parser = argparse.ArgumentParser(description="Produce the 4 required Lab 2 figures from CSV logs")
+    parser.add_argument("--folder", required=True, help="Folder containing linear.csv, angular.csv, robot_pose.csv")
     args = parser.parse_args()
-    
-    print(f"Processing folder: {args.folder}")
-    process_folder(args.folder)
-
-
-
+    make_four_plots(args.folder)
