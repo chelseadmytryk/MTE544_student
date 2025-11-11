@@ -15,7 +15,7 @@ import time
 
 import random
 
-from utilities import *
+from utilities import euler_from_quaternion, quaternion_from_euler, publishTransform
 
 from rclpy.duration import Duration
 
@@ -26,6 +26,7 @@ from nav_msgs.msg import OccupancyGrid
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from tf2_ros.transform_broadcaster import TransformBroadcaster
 from rclpy.time import Time
 
 class particleFilter(Node):
@@ -35,8 +36,9 @@ class particleFilter(Node):
         super().__init__("particleFiltering")
 
         # QoS profile for the subscribers
-        qos_profile_odom = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.VOLATILE, depth=10)
+        qos_profile_odom = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, 
+                                      durability=DurabilityPolicy.VOLATILE, 
+                                      depth=10)
         qos_profile_laserScanner = QoSProfile(reliability=ReliabilityPolicy.RELIABLE,
                                               durability=DurabilityPolicy.VOLATILE,
                                               depth=10)
@@ -100,7 +102,10 @@ class particleFilter(Node):
         numParticles = self.numParticles
 
         # TODO: generate the particles around the initial pose (x, y, th) (you should use the std_particle_x, std_particle_y, std_particle_theta)
-        self.particlePoses = ... #size should be (numParticles, 3)
+        self.particlePoses = np.array([[x + np.random.normal(0, self.std_particle_x),
+                                          y + np.random.normal(0, self.std_particle_y),
+                                          th + np.random.normal(0, self.std_particle_theta)]
+                                         for _ in range(numParticles)])     # size should be (numParticles, 3)
 
         self.particles = [particle(particle_, 1/numParticles) for particle_ in
                           self.particlePoses]
@@ -169,18 +174,21 @@ class particleFilter(Node):
         generated_particles = []
 
         particles_weights = np.array([each_particle.getWeight() for each_particle in self.particles])
-        # print("Sum of weights: ", np.sum(particles_weights))
+        print("Sum of weights: ", np.sum(particles_weights))
         particles_weights = particles_weights / np.sum(particles_weights)
         
         # TODO: randomly sampling N particles from the list of particles based on their weights (hint: use np.random.choice)
-        sampled_particles = ...
+        sampled_particles = np.random.choice(self.particles, 
+                                             size=self.numParticles,
+                                             replace=True,
+                                             p=particles_weights)
 
         for bp in sampled_particles:
             x, y, th = bp.getPose()
             # TODO: add noise to the x, y, and th, use the same std_noise for x, y, and th
-            new_x = x + ...
-            new_y = y + ...
-            new_th = th + ...
+            new_x = x + np.random.normal(0, std_noise)
+            new_y = y + np.random.normal(0, std_noise)
+            new_th = th + np.random.normal(0, std_noise)
 
             new_particle = particle([new_x, new_y, new_th], bp.getWeight())
 

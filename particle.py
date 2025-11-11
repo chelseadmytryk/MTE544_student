@@ -1,6 +1,5 @@
-
-from mapUtilities import *
-from utilities import *
+from mapUtilities import LaserScan, mapManipulator
+from utilities import convertScanToCartesian, normalize_angle
 from numpy import cos, sin
 import numpy as np
 
@@ -18,9 +17,9 @@ class particle:
         w: angular velocity
         dt: time step
         """
-        self.pose[0] += ...
-        self.pose[1] += ...
-        self.pose[2] += ...
+        self.pose[0] += v * dt * cos(self.pose[2])
+        self.pose[1] += v * dt * sin(self.pose[2])
+        self.pose[2] = normalize_angle(self.pose[2] + w * dt)
 
     # TODO: You need to explain the following function to TA
     def calculateParticleWeight(self, scanOutput: LaserScan, mapManipulatorInstance: mapManipulator, laser_to_ego_transformation: np.array):
