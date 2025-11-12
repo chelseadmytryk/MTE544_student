@@ -16,7 +16,7 @@ from utilities import *
 class mapManipulator(Node):
 
 
-    def __init__(self, filename_: str = "room.yaml", laser_sig=0.1):
+    def __init__(self, filename_: str = "room.yaml", laser_sig=0.4):
         
         
         super().__init__('likelihood_field')
@@ -195,7 +195,7 @@ class mapManipulator(Node):
         self.occ_points=np.array(occupied_points)
         
                 
-        self.plot_pgm_image(likelihood_field_img)
+        # self.plot_pgm_image(likelihood_field_img)
 
         self.likelihood_field = likelihood_field
         
