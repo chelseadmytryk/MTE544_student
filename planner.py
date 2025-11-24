@@ -44,15 +44,20 @@ class planner:
         startPoseCart = np.array(startPoseCart)[:2]
         endPoseCart = np.array(endPoseCart)[:2]
 
-        # TODO: Convert to pixel coordinates using the m_utilites
-        startPose = self.m_utilites...
-        endPose = self.m_utilites...
+        # Convert to pixel/cell coordinates using the m_utilites
+        # position_2_cell expects an Nx2 array of positions (meters) and returns Nx2 cell indices
+        start_cell = self.m_utilites.position_2_cell(np.array([startPoseCart]))[0]
+        end_cell = self.m_utilites.position_2_cell(np.array([endPoseCart]))[0]
+
+        startPose = (int(start_cell[0]), int(start_cell[1]))
+        endPose = (int(end_cell[0]), int(end_cell[1]))
 
         # convert to tuple
         startPose = (startPose[0], startPose[1])
         endPose = (endPose[0], endPose[1])
-        # TODO: Call the A* search algorithm
-        path = ...
+        # Call the A* search algorithm on the map image array
+        maze = self.m_utilites.getMap()
+        path = search(maze, startPose, endPose, manhattan=True)
         if path is None:
             return None
         
