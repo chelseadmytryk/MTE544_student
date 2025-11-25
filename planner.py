@@ -57,7 +57,8 @@ class planner:
         endPose = (endPose[0], endPose[1])
         # Call the A* search algorithm on the map image array
         maze = self.m_utilites.getMap()
-        path = search(maze, startPose, endPose, manhattan=True)
+        path = search(self.costMap, startPose, endPose, manhattan=True)
+
         if path is None:
             return None
         
